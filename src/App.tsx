@@ -22,6 +22,11 @@ interface Ball {
   rotation: number;
 }
 
+interface TrailPoint {
+  x: number;
+  y: number;
+}
+
 interface Goal {
   angle: number;
   width: number;
@@ -37,6 +42,7 @@ function App() {
   const [gameStartTime, setGameStartTime] = useState<number | null>(null);
   const [goalPopup, setGoalPopup] = useState<{ team: 'team1' | 'team2' } | null>(null);
   const [teamLogos, setTeamLogos] = useState<{ team1: HTMLImageElement | null; team2: HTMLImageElement | null }>({ team1: null, team2: null });
+  const ballTrailRef = useRef<TrailPoint[]>([]);
 
   // Game constants
   const CIRCLE_RADIUS = 140;
@@ -87,6 +93,11 @@ function App() {
 
   const triggerGoalEffect = (team: 'team1' | 'team2') => {
     setGoalPopup({ team });
+    
+    // Play goal sound
+    const audio = new Audio('/goal.mp3');
+    audio.play();
+
     setTimeout(() => {
       setGoalPopup(null);
     }, 1500); // Duration of the popup
@@ -237,6 +248,13 @@ function App() {
     
     // Update ball rotation
     ball.rotation += ball.vx * 0.05;
+
+    // Update ball trail
+    const trail = ballTrailRef.current;
+    trail.push({ x: ball.x, y: ball.y });
+    if (trail.length > 15) { // Keep trail length limited
+      trail.shift();
+    }
   };
 
   const draw = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
@@ -291,9 +309,9 @@ function App() {
     // Draw logos behind goals
     const drawLogo = (goal: Goal, logo: HTMLImageElement | null) => {
       if (!logo) return;
-      const logoSize = 80;
-      const logoX = centerX + Math.cos(goal.angle) * (CIRCLE_RADIUS + 30);
-      const logoY = centerY + Math.sin(goal.angle) * (CIRCLE_RADIUS + 30);
+      const logoSize = 60; // Eskiden 80'di
+      const logoX = centerX + Math.cos(goal.angle) * (CIRCLE_RADIUS + 40); // Eskiden CIRCLE_RADIUS + 30'du
+      const logoY = centerY + Math.sin(goal.angle) * (CIRCLE_RADIUS + 40); // Eskiden CIRCLE_RADIUS + 30'du
       
       ctx.save();
       ctx.translate(logoX, logoY);
@@ -379,6 +397,23 @@ function App() {
     
     drawGoal(goalsRef.current.goal1, '#ff4444');
     drawGoal(goalsRef.current.goal2, '#4444ff');
+
+    // Draw ball trail
+    const trail = ballTrailRef.current;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < trail.length; i++) {
+      const point = trail[i];
+      const screenX = centerX + point.x;
+      const screenY = centerY + point.y;
+      if (i === 0) {
+        ctx.moveTo(screenX, screenY);
+      } else {
+        ctx.lineTo(screenX, screenY);
+      }
+    }
+    ctx.stroke();
     
     // Draw ball
     const ball = ballRef.current;
@@ -391,41 +426,28 @@ function App() {
     ctx.shadowOffsetX = 5;
     ctx.shadowOffsetY = 5;
     
-    // Draw soccer ball
+    // Draw a simple, glowing ball
     ctx.save();
     ctx.translate(ballScreenX, ballScreenY);
-    ctx.rotate(ball.rotation);
 
-    // White background
-    ctx.fillStyle = 'white';
+    // Main ball
+    const ballGradient = ctx.createRadialGradient(
+      -ball.radius * 0.3, -ball.radius * 0.3, 1, 
+      0, 0, ball.radius
+    );
+    ballGradient.addColorStop(0, '#ffffff');
+    ballGradient.addColorStop(0.8, '#f0f0f0');
+    ballGradient.addColorStop(1, '#cccccc');
+
+    ctx.fillStyle = ballGradient;
     ctx.beginPath();
     ctx.arc(0, 0, ball.radius, 0, 2 * Math.PI);
     ctx.fill();
+
+    // Siyah çerçeve eklendi
     ctx.strokeStyle = 'black';
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 1;
     ctx.stroke();
-
-    // Black patches (Pentagons)
-    ctx.fillStyle = 'black';
-    const drawPentagon = (offsetX: number, offsetY: number, size: number, rotation: number) => {
-      ctx.beginPath();
-      for (let i = 0; i < 5; i++) {
-        const angle = (i / 5) * 2 * Math.PI + rotation;
-        const x = offsetX + Math.cos(angle) * size;
-        const y = offsetY + Math.sin(angle) * size;
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.closePath();
-      ctx.fill();
-    };
-
-    drawPentagon(0, 0, ball.radius / 2, Math.PI / 5);
-    drawPentagon(ball.radius * 0.8, ball.radius * 0.3, ball.radius / 2.5, Math.PI / 3);
-    drawPentagon(-ball.radius * 0.7, -ball.radius * 0.5, ball.radius / 3, Math.PI / 10);
 
     ctx.restore();
 
