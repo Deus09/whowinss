@@ -524,6 +524,27 @@ function App() {
             <p className="text-5xl font-extrabold text-white tracking-widest">GOOOL!</p>
           </div>
         )}
+
+        {gameTime >= 90 && (
+          <div className="absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20 rounded-lg game-over-popup">
+            {score.team1 > score.team2 && (
+              <>
+                <img src={teams.team1.logo} alt={teams.team1.name} className="w-32 h-32 mb-4"/>
+                <p className="text-6xl font-extrabold text-white tracking-widest">WIN</p>
+              </>
+            )}
+            {score.team2 > score.team1 && (
+              <>
+                <img src={teams.team2.logo} alt={teams.team2.name} className="w-32 h-32 mb-4"/>
+                <p className="text-6xl font-extrabold text-white tracking-widest">WIN</p>
+              </>
+            )}
+            {score.team1 === score.team2 && (
+              <p className="text-6xl font-extrabold text-white tracking-widest">DRAW</p>
+            )}
+          </div>
+        )}
+        
         <canvas
           ref={canvasRef}
           width={320}
