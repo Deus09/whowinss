@@ -49,8 +49,8 @@ function App() {
   const GOAL_WIDTH = 25; // Reduced from 35
   const GOAL_HEIGHT = 10; // Reduced from 12
   const BALL_RADIUS = 10;
-  const ROTATION_SPEED = 0.02; // Goals rotation speed
-  const GRAVITY = 0.15; // Gravity force
+  const ROTATION_SPEED = 0.012; // Goals rotation speed
+  const GRAVITY = 0.12; // Gravity force
   const SPEED_BOOST = 1.1; // Speed boost on collision
   const MAX_SPEED = 8; // Maximum speed limit
 
