@@ -329,34 +329,73 @@ function App() {
       const goalX = centerX + Math.cos(goal.angle) * CIRCLE_RADIUS;
       const goalY = centerY + Math.sin(goal.angle) * CIRCLE_RADIUS;
       
+      // Create a lighter and darker version of the goal color for the gradient
+      const lighterColor = color.replace('44', '88'); // e.g., #ff4444 -> #ff8888
+      const darkerColor = color.replace('44', '22');  // e.g., #ff4444 -> #ff2222
+
       // Goal posts
-      ctx.strokeStyle = color;
       ctx.lineWidth = 6; // Thicker posts
       ctx.lineCap = 'round';
       
       const perpAngle = goal.angle + Math.PI / 2;
       const postOffset = goal.width / 2;
       
-      // Left post
+      // --- Left Post ---
       const leftX = goalX + Math.cos(perpAngle) * postOffset;
       const leftY = goalY + Math.sin(perpAngle) * postOffset;
+      const leftEndX = leftX - Math.cos(goal.angle) * goal.height;
+      const leftEndY = leftY - Math.sin(goal.angle) * goal.height;
+      
+      // Gradient for the left post
+      const postGradientL = ctx.createLinearGradient(
+        leftX - Math.cos(perpAngle) * 3, leftY - Math.sin(perpAngle) * 3,
+        leftX + Math.cos(perpAngle) * 3, leftY + Math.sin(perpAngle) * 3
+      );
+      postGradientL.addColorStop(0, lighterColor);
+      postGradientL.addColorStop(0.5, color);
+      postGradientL.addColorStop(1, darkerColor);
+
+      ctx.strokeStyle = postGradientL;
       ctx.beginPath();
       ctx.moveTo(leftX, leftY);
-      ctx.lineTo(leftX - Math.cos(goal.angle) * goal.height, leftY - Math.sin(goal.angle) * goal.height);
+      ctx.lineTo(leftEndX, leftEndY);
       ctx.stroke();
       
-      // Right post
+      // --- Right Post ---
       const rightX = goalX - Math.cos(perpAngle) * postOffset;
       const rightY = goalY - Math.sin(perpAngle) * postOffset;
+      const rightEndX = rightX - Math.cos(goal.angle) * goal.height;
+      const rightEndY = rightY - Math.sin(goal.angle) * goal.height;
+
+      // Gradient for the right post
+      const postGradientR = ctx.createLinearGradient(
+        rightX - Math.cos(perpAngle) * 3, rightY - Math.sin(perpAngle) * 3,
+        rightX + Math.cos(perpAngle) * 3, rightY + Math.sin(perpAngle) * 3
+      );
+      postGradientR.addColorStop(0, lighterColor);
+      postGradientR.addColorStop(0.5, color);
+      postGradientR.addColorStop(1, darkerColor);
+
+      ctx.strokeStyle = postGradientR;
       ctx.beginPath();
       ctx.moveTo(rightX, rightY);
-      ctx.lineTo(rightX - Math.cos(goal.angle) * goal.height, rightY - Math.sin(goal.angle) * goal.height);
+      ctx.lineTo(rightEndX, rightEndY);
       ctx.stroke();
       
-      // Crossbar
+      // --- Crossbar ---
+      // Gradient for the crossbar
+      const crossbarGradient = ctx.createLinearGradient(
+        leftEndX - Math.cos(goal.angle) * 3, leftEndY - Math.sin(goal.angle) * 3,
+        leftEndX + Math.cos(goal.angle) * 3, leftEndY + Math.sin(goal.angle) * 3
+      );
+      crossbarGradient.addColorStop(0, lighterColor);
+      crossbarGradient.addColorStop(0.5, color);
+      crossbarGradient.addColorStop(1, darkerColor);
+
+      ctx.strokeStyle = crossbarGradient;
       ctx.beginPath();
-      ctx.moveTo(leftX - Math.cos(goal.angle) * goal.height, leftY - Math.sin(goal.angle) * goal.height);
-      ctx.lineTo(rightX - Math.cos(goal.angle) * goal.height, rightY - Math.sin(goal.angle) * goal.height);
+      ctx.moveTo(leftEndX, leftEndY);
+      ctx.lineTo(rightEndX, rightEndY);
       ctx.stroke();
       
       // Goal net
@@ -432,12 +471,13 @@ function App() {
 
     // Main ball
     const ballGradient = ctx.createRadialGradient(
-      -ball.radius * 0.3, -ball.radius * 0.3, 1, 
+      -ball.radius * 0.4, -ball.radius * 0.4, ball.radius * 0.1, // Işık vurgusunun konumu ve boyutu
       0, 0, ball.radius
     );
-    ballGradient.addColorStop(0, '#ffffff');
-    ballGradient.addColorStop(0.8, '#f0f0f0');
-    ballGradient.addColorStop(1, '#cccccc');
+    ballGradient.addColorStop(0, '#ffffff');    // Parlak beyaz vurgu
+    ballGradient.addColorStop(0.1, '#f8f8f8');   // Vurgudan yumuşak geçiş
+    ballGradient.addColorStop(0.7, '#e0e0e0');   // Topun ana rengi
+    ballGradient.addColorStop(1, '#b0b0b0');    // 3D efekti için daha koyu kenar
 
     ctx.fillStyle = ballGradient;
     ctx.beginPath();
