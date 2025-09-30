@@ -36,11 +36,12 @@ function App() {
   const [score, setScore] = useState({ team1: 0, team2: 0 });
   const [gameStartTime, setGameStartTime] = useState<number | null>(null);
   const [goalEffect, setGoalEffect] = useState(false);
+  const [teamLogos, setTeamLogos] = useState<{ team1: HTMLImageElement | null; team2: HTMLImageElement | null }>({ team1: null, team2: null });
 
   // Game constants
   const CIRCLE_RADIUS = 140;
-  const GOAL_WIDTH = 35;
-  const GOAL_HEIGHT = 12;
+  const GOAL_WIDTH = 25; // Reduced from 35
+  const GOAL_HEIGHT = 10; // Reduced from 12
   const BALL_RADIUS = 10;
   const ROTATION_SPEED = 0.02; // Goals rotation speed
   const GRAVITY = 0.15; // Gravity force
@@ -78,6 +79,12 @@ function App() {
     // Removed setGoalAnimation call (goalAnimation state is unused)
   };
 
+  const normalizeAngle = (angle: number) => {
+    while (angle < 0) angle += 2 * Math.PI;
+    while (angle >= 2 * Math.PI) angle -= 2 * Math.PI;
+    return angle;
+  };
+
   const triggerGoalEffect = () => {
     setGoalEffect(true);
     setTimeout(() => {
@@ -86,52 +93,94 @@ function App() {
   };
 
   const checkGoal = (ball: Ball) => {
+    const handleGoal = (team: 'team1' | 'team2') => {
+      setScore(prev => ({ ...prev, [team]: prev[team] + 1 }));
+      triggerGoalEffect();
+      ballRef.current.x = 0;
+      ballRef.current.y = 0;
+      ballRef.current.vx = (Math.random() - 0.5) * 3;
+      ballRef.current.vy = -2;
+      return true;
+    };
+
+    const checkCollisionWithPosts = (goal: Goal, team: 'team1' | 'team2') => {
+      const goalAngle = normalizeAngle(goal.angle);
+      const ballAngle = normalizeAngle(Math.atan2(ball.y, ball.x));
+      
+      // Check if the ball is roughly aligned with the goal
+      const angleDifference = Math.abs(ballAngle - goalAngle);
+      if (angleDifference > 0.5 && angleDifference < 2 * Math.PI - 0.5) {
+        return false; // Not near this goal
+      }
+
+      const postAngleOffset = Math.atan2(goal.width / 2, CIRCLE_RADIUS);
+      const leftPostAngle = normalizeAngle(goal.angle + postAngleOffset);
+      const rightPostAngle = normalizeAngle(goal.angle - postAngleOffset);
+
+      // Check for goal
+      // This logic handles the angle wrapping around 2*PI
+      let isBetweenPosts = false;
+      if (leftPostAngle > rightPostAngle) {
+        if (ballAngle < leftPostAngle && ballAngle > rightPostAngle) {
+          isBetweenPosts = true;
+        }
+      } else { // Wraps around 0/2PI
+        if (ballAngle < leftPostAngle || ballAngle > rightPostAngle) {
+          isBetweenPosts = true;
+        }
+      }
+
+      if (isBetweenPosts) {
+        return handleGoal(team);
+      }
+
+      // If not a goal, check for post collision
+      const perpAngle = goal.angle + Math.PI / 2;
+      const postCollisionThreshold = ball.radius + 3; // 3 is half of post line width
+
+      const checkPost = (postSide: 'left' | 'right') => {
+        const angle = postSide === 'left' ? leftPostAngle : rightPostAngle;
+        const postX = Math.cos(angle) * CIRCLE_RADIUS;
+        const postY = Math.sin(angle) * CIRCLE_RADIUS;
+        const dist = Math.sqrt((ball.x - postX)**2 + (ball.y - postY)**2);
+
+        if (dist < postCollisionThreshold) {
+          // Collision with a post
+          const normalX = Math.cos(perpAngle);
+          const normalY = Math.sin(perpAngle);
+          
+          const dotProduct = ball.vx * normalX + ball.vy * normalY;
+          ball.vx -= 2 * dotProduct * normalX;
+          ball.vy -= 2 * dotProduct * normalY;
+
+          ball.vx *= SPEED_BOOST * 0.9; // Slightly less boost than walls
+          ball.vy *= SPEED_BOOST * 0.9;
+
+          // Move ball away from post to prevent sticking
+          const overlap = postCollisionThreshold - dist;
+          ball.x += Math.cos(perpAngle) * overlap * (postSide === 'left' ? 1 : -1);
+          ball.y += Math.sin(perpAngle) * overlap * (postSide === 'left' ? 1 : -1);
+          
+          return true;
+        }
+        return false;
+      };
+
+      if (checkPost('left') || checkPost('right')) {
+        return 'post_collision';
+      }
+      
+      return false;
+    };
+
     // Check if ball is near the circle edge
     const distanceFromCenter = Math.sqrt(ball.x ** 2 + ball.y ** 2);
-    
-    if (distanceFromCenter > CIRCLE_RADIUS - BALL_RADIUS - 5) {
-      const ballAngle = Math.atan2(ball.y, ball.x);
-      
-      // Normalize angles to [0, 2π]
-      const normalizeAngle = (angle: number) => {
-        while (angle < 0) angle += 2 * Math.PI;
-        while (angle >= 2 * Math.PI) angle -= 2 * Math.PI;
-        return angle;
-      };
-      
-      const goal1Angle = normalizeAngle(goalsRef.current.goal1.angle);
-      const goal2Angle = normalizeAngle(goalsRef.current.goal2.angle);
-      const ballAngleNorm = normalizeAngle(ballAngle);
-      
-      const goalTolerance = 0.3; // Goal opening angle
-      
-      // Check Goal 1 (Team 2 scores)
-      if (Math.abs(ballAngleNorm - goal1Angle) < goalTolerance || 
-          Math.abs(ballAngleNorm - goal1Angle - 2 * Math.PI) < goalTolerance ||
-          Math.abs(ballAngleNorm - goal1Angle + 2 * Math.PI) < goalTolerance) {
-        setScore(prev => ({ ...prev, team2: prev.team2 + 1 }));
-        triggerGoalEffect();
-        // Reset ball position
-        ballRef.current.x = 0;
-        ballRef.current.y = 0;
-        ballRef.current.vx = (Math.random() - 0.5) * 3;
-        ballRef.current.vy = -2; // Start with upward velocity
-        return true;
-      }
-      
-      // Check Goal 2 (Team 1 scores)
-      if (Math.abs(ballAngleNorm - goal2Angle) < goalTolerance ||
-          Math.abs(ballAngleNorm - goal2Angle - 2 * Math.PI) < goalTolerance ||
-          Math.abs(ballAngleNorm - goal2Angle + 2 * Math.PI) < goalTolerance) {
-        setScore(prev => ({ ...prev, team1: prev.team1 + 1 }));
-        triggerGoalEffect();
-        // Reset ball position
-        ballRef.current.x = 0;
-        ballRef.current.y = 0;
-        ballRef.current.vx = (Math.random() - 0.5) * 3;
-        ballRef.current.vy = -2; // Start with upward velocity
-        return true;
-      }
+    if (distanceFromCenter > CIRCLE_RADIUS - ball.radius) {
+      const goal1Result = checkCollisionWithPosts(goalsRef.current.goal1, 'team2');
+      if (goal1Result) return goal1Result;
+
+      const goal2Result = checkCollisionWithPosts(goalsRef.current.goal2, 'team1');
+      if (goal2Result) return goal2Result;
     }
     
     return false;
@@ -151,29 +200,31 @@ function App() {
     const distanceFromCenter = Math.sqrt(ball.x ** 2 + ball.y ** 2);
     
     if (distanceFromCenter + ball.radius > CIRCLE_RADIUS) {
-      // Check for goals first
-      if (!checkGoal(ball)) {
-        // Calculate collision normal
+      const goalCheckResult = checkGoal(ball);
+      
+      if (goalCheckResult === true) {
+        // Goal was scored, ball is reset, so skip rest of physics
+        return;
+      }
+      
+      if (goalCheckResult !== 'post_collision') {
+        // If it's not a goal and not a post collision, it's a wall collision
         const normalX = ball.x / distanceFromCenter;
         const normalY = ball.y / distanceFromCenter;
         
-        // Reflect velocity
         const dotProduct = ball.vx * normalX + ball.vy * normalY;
         ball.vx = ball.vx - 2 * dotProduct * normalX;
         ball.vy = ball.vy - 2 * dotProduct * normalY;
         
-        // Apply speed boost on collision
         ball.vx *= SPEED_BOOST;
         ball.vy *= SPEED_BOOST;
         
-        // Limit maximum speed
         const currentSpeed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
         if (currentSpeed > MAX_SPEED) {
           ball.vx = (ball.vx / currentSpeed) * MAX_SPEED;
           ball.vy = (ball.vy / currentSpeed) * MAX_SPEED;
         }
         
-        // Move ball back inside circle
         const overlap = distanceFromCenter + ball.radius - CIRCLE_RADIUS;
         ball.x -= normalX * overlap;
         ball.y -= normalY * overlap;
@@ -192,21 +243,38 @@ function App() {
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    // Clear canvas
-    ctx.fillStyle = '#1a5f1a';
+    // Clear canvas with a trail effect
+    ctx.fillStyle = 'rgba(26, 95, 26, 0.4)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw circle
-    ctx.strokeStyle = '#ffffff';
+    // Draw field lines (re-draw every frame over the trail)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(centerX, centerY, CIRCLE_RADIUS, 0, 2 * Math.PI);
     ctx.stroke();
     
-    // Draw center circle
     ctx.beginPath();
     ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
     ctx.stroke();
+
+    // Draw logos behind goals
+    const drawLogo = (goal: Goal, logo: HTMLImageElement | null) => {
+      if (!logo) return;
+      const logoSize = 80;
+      const logoX = centerX + Math.cos(goal.angle) * (CIRCLE_RADIUS + 30);
+      const logoY = centerY + Math.sin(goal.angle) * (CIRCLE_RADIUS + 30);
+      
+      ctx.save();
+      ctx.translate(logoX, logoY);
+      ctx.rotate(goal.angle + Math.PI / 2);
+      ctx.globalAlpha = 0.15; // Faded effect
+      ctx.drawImage(logo, -logoSize / 2, -logoSize / 2, logoSize, logoSize);
+      ctx.restore();
+    };
+
+    drawLogo(goalsRef.current.goal1, teamLogos.team1);
+    drawLogo(goalsRef.current.goal2, teamLogos.team2);
     
     // Draw goals
     const drawGoal = (goal: Goal, color: string) => {
@@ -288,10 +356,10 @@ function App() {
     const ballScreenY = centerY + ball.y;
     
     // Ball shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.beginPath();
-    ctx.arc(ballScreenX + 2, ballScreenY + 2, ball.radius, 0, 2 * Math.PI);
-    ctx.fill();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 5;
+    ctx.shadowOffsetY = 5;
     
     // Draw soccer ball
     ctx.save();
@@ -330,6 +398,12 @@ function App() {
     drawPentagon(-ball.radius * 0.7, -ball.radius * 0.5, ball.radius / 3, Math.PI / 10);
 
     ctx.restore();
+
+    // Clear shadow for other elements
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
   };
 
   const gameLoop = () => {
@@ -342,10 +416,10 @@ function App() {
     if (isPlaying) {
       updatePhysics();
       
-      // Update game time (90 minutes in 15 seconds)
+      // Update game time (90 minutes in 45 seconds)
       if (gameStartTime) {
         const elapsed = (Date.now() - gameStartTime) / 1000; // seconds
-        const gameMinutes = Math.min(90, Math.floor((elapsed / 15) * 90) + 1);
+        const gameMinutes = Math.min(90, Math.floor((elapsed / 45) * 90));
         setGameTime(gameMinutes);
         
         if (gameMinutes >= 90) {
@@ -366,6 +440,20 @@ function App() {
       }
     };
   }, [isPlaying, gameStartTime]);
+
+  useEffect(() => {
+    const logo1 = new Image();
+    logo1.src = teams.team1.logo;
+    logo1.onload = () => {
+      setTeamLogos(prev => ({ ...prev, team1: logo1 }));
+    };
+
+    const logo2 = new Image();
+    logo2.src = teams.team2.logo;
+    logo2.onload = () => {
+      setTeamLogos(prev => ({ ...prev, team2: logo2 }));
+    };
+  }, []);
 
   const togglePlay = () => {
     if (!isPlaying && !gameStartTime) {
