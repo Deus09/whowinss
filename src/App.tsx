@@ -288,37 +288,16 @@ function App() {
     ctx.arc(centerX, centerY, CIRCLE_RADIUS, 0, 2 * Math.PI);
     ctx.stroke();
     
-    // "WhoWıns?" metnini ve penaltı noktasını çiz
+    // "WhoWins" metnini çiz
     ctx.save();
     ctx.font = 'bold 28px sans-serif';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.textAlign = 'center'; // Metni yatayda ortala
     ctx.textBaseline = 'middle';
     ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
     ctx.shadowBlur = 6;
-
-    // Metni iki parça halinde çizerek ortadaki noktaya yer aç
-    const text1 = 'WhoW';
-    const text2 = 'ins';
-
-    const text1Width = ctx.measureText(text1).width;
-    const text2Width = ctx.measureText(text2).width;
-    const totalWidth = text1Width + text2Width;
-
-    const startX = centerX - totalWidth / 2;
-    
-    ctx.fillText(text1, startX, centerY - 5);
-    ctx.fillText(text2, startX + text1Width, centerY - 5);
-    
+    ctx.fillText('WhoWins?', centerX, centerY); // Metni tek parça olarak çiz
     ctx.restore();
-
-    // Penaltı noktası (i'nin noktası)
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, 4, 0, 2 * Math.PI);
-    ctx.fillStyle = 'white';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 4;
-    ctx.fill();
-    ctx.shadowColor = 'transparent'; // Sonraki çizimler için gölgeyi temizle
 
     // Takım logolarını çiz
     const drawLogo = (goal: Goal, logo: HTMLImageElement | null) => {
