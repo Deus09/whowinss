@@ -261,52 +261,66 @@ function App() {
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    // Create a radial gradient for a spotlight effect
-    const gradient = ctx.createRadialGradient(centerX, centerY, 50, centerX, centerY, CIRCLE_RADIUS + 50);
-    gradient.addColorStop(0, '#2a8c2a'); // Brighter center
-    gradient.addColorStop(1, '#1a5f1a'); // Darker edges
-
-    // Clear canvas with the gradient
-    ctx.fillStyle = gradient;
+    // Arka planı tek bir koyu yeşil renkle doldur
+    ctx.fillStyle = '#1a5f1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw subtle grass texture within the circle
+    // Çim şeritlerini çiz
     ctx.save();
     ctx.beginPath();
     ctx.arc(centerX, centerY, CIRCLE_RADIUS, 0, 2 * Math.PI);
-    ctx.clip(); // Clip to the circle
-    
-    ctx.globalAlpha = 0.1;
-    ctx.strokeStyle = '#3a9d3a';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 2000; i++) { // Draw many small lines for texture
-        const x1 = Math.random() * canvas.width;
-        const y1 = Math.random() * canvas.height;
-        const angle = Math.random() * Math.PI * 2;
-        const length = Math.random() * 5 + 2;
-        const x2 = x1 + Math.cos(angle) * length;
-        const y2 = y1 + Math.sin(angle) * length;
-        
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
+    ctx.clip(); // Sadece dairenin içine çizim yap
+
+    const stripeWidth = 40;
+    const lightGreen = '#2e992e';
+    const darkGreen = '#2a8c2a';
+
+    for (let i = -CIRCLE_RADIUS; i < CIRCLE_RADIUS; i += stripeWidth) {
+        ctx.fillStyle = (Math.floor(i / stripeWidth) % 2 === 0) ? lightGreen : darkGreen;
+        ctx.fillRect(centerX + i, centerY - CIRCLE_RADIUS, stripeWidth, CIRCLE_RADIUS * 2);
     }
     ctx.restore();
     
-    // Draw field lines
+    // Saha çizgilerini çiz
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(centerX, centerY, CIRCLE_RADIUS, 0, 2 * Math.PI);
     ctx.stroke();
     
-    // Draw center circle
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
-    ctx.stroke();
+    // "WhoWıns?" metnini ve penaltı noktasını çiz
+    ctx.save();
+    ctx.font = 'bold 28px sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    ctx.shadowBlur = 6;
 
-    // Draw logos behind goals
+    // Metni iki parça halinde çizerek ortadaki noktaya yer aç
+    const text1 = 'WhoW';
+    const text2 = 'ins';
+
+    const text1Width = ctx.measureText(text1).width;
+    const text2Width = ctx.measureText(text2).width;
+    const totalWidth = text1Width + text2Width;
+
+    const startX = centerX - totalWidth / 2;
+    
+    ctx.fillText(text1, startX, centerY - 5);
+    ctx.fillText(text2, startX + text1Width, centerY - 5);
+    
+    ctx.restore();
+
+    // Penaltı noktası (i'nin noktası)
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 4, 0, 2 * Math.PI);
+    ctx.fillStyle = 'white';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 4;
+    ctx.fill();
+    ctx.shadowColor = 'transparent'; // Sonraki çizimler için gölgeyi temizle
+
+    // Takım logolarını çiz
     const drawLogo = (goal: Goal, logo: HTMLImageElement | null) => {
       if (!logo) return;
       const logoSize = 60; // Eskiden 80'di
@@ -555,7 +569,7 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4 font-sans">
       {/* Scoreboard */}
       <div className="w-full max-w-md bg-gray-800 rounded-lg p-4 shadow-2xl mb-4">
         <div className="flex justify-between items-center">
