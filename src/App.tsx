@@ -343,8 +343,8 @@ function App() {
       // --- Left Post ---
       const leftX = goalX + Math.cos(perpAngle) * postOffset;
       const leftY = goalY + Math.sin(perpAngle) * postOffset;
-      const leftEndX = leftX - Math.cos(goal.angle) * goal.height;
-      const leftEndY = leftY - Math.sin(goal.angle) * goal.height;
+      const leftEndX = leftX + Math.cos(goal.angle) * goal.height; // Yön değiştirildi
+      const leftEndY = leftY + Math.sin(goal.angle) * goal.height; // Yön değiştirildi
       
       // Gradient for the left post
       const postGradientL = ctx.createLinearGradient(
@@ -364,8 +364,8 @@ function App() {
       // --- Right Post ---
       const rightX = goalX - Math.cos(perpAngle) * postOffset;
       const rightY = goalY - Math.sin(perpAngle) * postOffset;
-      const rightEndX = rightX - Math.cos(goal.angle) * goal.height;
-      const rightEndY = rightY - Math.sin(goal.angle) * goal.height;
+      const rightEndX = rightX + Math.cos(goal.angle) * goal.height; // Yön değiştirildi
+      const rightEndY = rightY + Math.sin(goal.angle) * goal.height; // Yön değiştirildi
 
       // Gradient for the right post
       const postGradientR = ctx.createLinearGradient(
@@ -408,8 +408,8 @@ function App() {
         const ratio = i / 4;
         const netX1 = leftX + (rightX - leftX) * ratio;
         const netY1 = leftY + (rightY - leftY) * ratio;
-        const netX2 = netX1 - Math.cos(goal.angle) * goal.height;
-        const netY2 = netY1 - Math.sin(goal.angle) * goal.height;
+        const netX2 = netX1 + Math.cos(goal.angle) * goal.height; // Yön değiştirildi
+        const netY2 = netY1 + Math.sin(goal.angle) * goal.height; // Yön değiştirildi
         
         ctx.beginPath();
         ctx.moveTo(netX1, netY1);
@@ -420,10 +420,10 @@ function App() {
       // Horizontal net lines
       for (let i = 1; i < 3; i++) {
         const ratio = i / 3;
-        const netX1 = leftX - Math.cos(goal.angle) * goal.height * ratio;
-        const netY1 = leftY - Math.sin(goal.angle) * goal.height * ratio;
-        const netX2 = rightX - Math.cos(goal.angle) * goal.height * ratio;
-        const netY2 = rightY - Math.sin(goal.angle) * goal.height * ratio;
+        const netX1 = leftX + Math.cos(goal.angle) * goal.height * ratio; // Yön değiştirildi
+        const netY1 = leftY + Math.sin(goal.angle) * goal.height * ratio; // Yön değiştirildi
+        const netX2 = rightX + Math.cos(goal.angle) * goal.height * ratio; // Yön değiştirildi
+        const netY2 = rightY + Math.sin(goal.angle) * goal.height * ratio; // Yön değiştirildi
         
         ctx.beginPath();
         ctx.moveTo(netX1, netY1);
